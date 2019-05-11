@@ -1,0 +1,21 @@
+image: golang:1.12
+
+stages:
+  - test
+  - build
+  - run
+
+test:
+  stage: test
+  script:
+    - go test -cover -v ./...
+
+build:
+  stage: build
+  script:
+    - go build -race -ldflags "-extldflags '-static'" -o $CI_PROJECT_DIR/package-tree
+  only:
+    - master
+  artifacts:
+    paths:
+      - package-tree
