@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -32,11 +31,7 @@ func handleConnection(c net.Conn) {
 			return
 		}
 
-		r, err := parseRequest(d)
-		if err != nil {
-			c.Write([]byte("UNKNOWN\n"))
-			return
-		}
+		r := parseRequest(d)
 
 		// DEBUG
 		if len(r.Dependencies) > 0 {
@@ -45,6 +40,8 @@ func handleConnection(c net.Conn) {
 			}
 		}
 
+		// FIXME: may want to move this into a separate function and prevent
+		// redundancy
 		switch r.Command {
 		case "INDEX":
 			go indexPkg(c, r)
@@ -56,22 +53,22 @@ func handleConnection(c net.Conn) {
 			c.Write([]byte("UNKNOWN\n"))
 		}
 
+		// TODO: after further testing, need to validate this isn't disconnecting
+		// clients before the command has finished. Upon initial tests, clients see
+		// a EOF or disconnect
 		c.Close()
 		break
 	}
 }
 
+// FIXME: parseRequest does not handle null / unexpected use cases
+// Will need better logic to split the data and prevent unwanted data
+// from corrupting the index or causing issues
+//
 // parseRequest takes incoming data and splits it using delimiters,
 // then returns a struct of the data
-func parseRequest(s string) (Request, error) {
-	request := Request{}
-
+func parseRequest(s string) Request {
 	d := strings.Split(strings.TrimSpace(string(s)), "|")
-
-	if len(d) < 10 {
-		return request, errors.New("Null request received")
-	}
-
 	cmd := d[0]
 	pkg := d[1]
 	deps := []string{}
@@ -80,6 +77,6 @@ func parseRequest(s string) (Request, error) {
 		deps = append(deps, dep)
 	}
 
-	request = Request{Command: cmd, Package: pkg, Dependencies: deps}
-	return request, nil
+	request := Request{Command: cmd, Package: pkg, Dependencies: deps}
+	return request
 }
