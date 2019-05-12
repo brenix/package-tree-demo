@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"log"
 	"net"
 	"strings"
@@ -25,19 +25,22 @@ func handleConnection(c net.Conn) {
 	log.Printf("Serving %s\n", c.RemoteAddr().String())
 
 	for {
+		// Use func for defer to avoid issues in loop
+		defer func() {
+			c.Close()
+		}()
+
 		d, err := bufio.NewReader(c).ReadString('\n')
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		r := parseRequest(d)
-
-		// DEBUG
-		if len(r.Dependencies) > 0 {
-			for _, dep := range r.Dependencies {
-				fmt.Println(dep)
-			}
+		r, err := parseRequest(d)
+		if err != nil {
+			log.Println(err)
+			c.Write([]byte("UNKNOWN\n"))
+			return
 		}
 
 		// FIXME: may want to move this into a separate function and prevent
@@ -52,12 +55,6 @@ func handleConnection(c net.Conn) {
 		default:
 			c.Write([]byte("UNKNOWN\n"))
 		}
-
-		// TODO: after further testing, need to validate this isn't disconnecting
-		// clients before the command has finished. Upon initial tests, clients see
-		// a EOF or disconnect
-		c.Close()
-		break
 	}
 }
 
@@ -67,16 +64,25 @@ func handleConnection(c net.Conn) {
 //
 // parseRequest takes incoming data and splits it using delimiters,
 // then returns a struct of the data
-func parseRequest(s string) Request {
-	d := strings.Split(strings.TrimSpace(string(s)), "|")
-	cmd := d[0]
-	pkg := d[1]
+func parseRequest(s string) (Request, error) {
+	r := Request{}
+	cmd := ""
+	pkg := ""
 	deps := []string{}
+
+	d := strings.Split(strings.TrimSpace(string(s)), "|")
+
+	if len(d[0]) > 0 && len(d[1]) > 0 {
+		cmd = d[0]
+		pkg = d[1]
+	} else {
+		return r, errors.New("Unable to parse request: null value detected")
+	}
 
 	for _, dep := range strings.Split(d[2], ",") {
 		deps = append(deps, dep)
 	}
 
-	request := Request{Command: cmd, Package: pkg, Dependencies: deps}
-	return request
+	r = Request{Command: cmd, Package: pkg, Dependencies: deps}
+	return r, nil
 }
