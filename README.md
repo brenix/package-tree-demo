@@ -218,6 +218,7 @@ removes, and queries 3000+ packages and dependencies:
 | 10          | 1778ms       |
 
 **2-core CPU**:
+
 | Concurrency | Elapsed Time |
 | ----------- | ------------ |
 | 1           | 13909ms      |
