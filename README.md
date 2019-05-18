@@ -128,6 +128,12 @@ To build a container using Docker, run the following:
 docker build -t package-tree .
 ```
 
+To run the container interactively using Docker, run the following:
+
+```bash
+docker run --rm -it -p 8080:8080 package-tree
+```
+
 ## Usage
 
 ```bash
@@ -202,7 +208,6 @@ echo "REMOVE|foo|\n" | nc -q0 localhost 8080
   was the most performant over `sync.Map`. This allows the data to be indexed
   consistently and avoids race conditions.
 
-
 ## Benchmarks
 
 The following are average benchmarks taken using a test-suite which adds,
@@ -235,3 +240,4 @@ These following links provided useful information in building this tool (much th
 - https://yourbasic.org/golang/regexp-cheat-sheet/
 - https://blog.golang.org/go-maps-in-action
 - https://github.com/cweill/gotests
+- https://www.digitalocean.com/community/tutorials/how-to-build-go-executables-for-multiple-platforms-on-ubuntu-16-04
